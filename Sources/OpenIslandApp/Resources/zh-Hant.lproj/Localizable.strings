@@ -52,7 +52,6 @@
 "settings.appearance.state.idle" = "閒置";
 "settings.appearance.state.running" = "執行";
 "settings.appearance.state.waiting" = "等待";
-"settings.appearance.state.done" = "完成";
 "settings.appearance.state.auto.on" = "自動 ✓";
 "settings.appearance.state.auto.off" = "自動";
 "settings.appearance.rightSlot.title" = "01 · 右側槽";

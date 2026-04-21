@@ -1,9 +1,8 @@
 import SwiftUI
 
 /// v6 `UnifiedBars` glyph — three vertical bars that share the same geometry
-/// across the four primary notch states (idle / running / waiting / done), so
-/// transitions between states animate bar heights smoothly instead of
-/// swapping glyphs.
+/// across all three notch states (idle / running / waiting), so transitions
+/// animate bar heights smoothly instead of swapping glyphs.
 ///
 /// Canonical geometry (from the design handoff): 24×24 box, 3 bars of width
 /// 2.5 centered on columns x = 5.25 / 10.75 / 16.25, rounded to a pill.
@@ -12,7 +11,6 @@ struct UnifiedBars: View {
         case idle       // rest — 3 short bars, middle breathes
         case running    // wave — heights 4→12→4, stagger 0.15s
         case waiting    // pause — outer bars tall, middle hidden, cross-pulse
-        case done       // animated tick in place of bars
     }
 
     var mode: Mode
@@ -31,25 +29,14 @@ struct UnifiedBars: View {
     ]
 
     var body: some View {
-        Group {
-            if mode == .done {
-                Canvas { context, canvasSize in
-                    withScaledContext(context, canvasSize) { ctx in
-                        drawTick(context: ctx)
-                    }
+        TimelineView(.animation) { timeline in
+            Canvas { context, canvasSize in
+                withScaledContext(context, canvasSize) { ctx in
+                    drawBars(context: ctx, time: timeline.date.timeIntervalSinceReferenceDate)
                 }
-                .frame(width: size, height: size)
-            } else {
-                TimelineView(.animation) { timeline in
-                    Canvas { context, canvasSize in
-                        withScaledContext(context, canvasSize) { ctx in
-                            drawBars(context: ctx, time: timeline.date.timeIntervalSinceReferenceDate)
-                        }
-                    }
-                }
-                .frame(width: size, height: size)
             }
         }
+        .frame(width: size, height: size)
     }
 
     // MARK: - Drawing
@@ -125,21 +112,7 @@ struct UnifiedBars: View {
             let wave = 0.5 - 0.5 * cos(progress * 2 * .pi)
             let opacity = 0.55 + 0.45 * wave
             return (h, Self.center - h / 2, opacity)
-        case .done:
-            return (0, Self.center, 0)
         }
-    }
-
-    private func drawTick(context: GraphicsContext) {
-        var path = Path()
-        path.move(to: CGPoint(x: 6, y: 12))
-        path.addLine(to: CGPoint(x: 10.5, y: 16.5))
-        path.addLine(to: CGPoint(x: 18, y: 9))
-        context.stroke(
-            path,
-            with: .color(tint),
-            style: StrokeStyle(lineWidth: 2.2, lineCap: .round, lineJoin: .round)
-        )
     }
 
     private struct Column: Equatable {

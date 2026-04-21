@@ -52,7 +52,6 @@
 "settings.appearance.state.idle" = "idle";
 "settings.appearance.state.running" = "running";
 "settings.appearance.state.waiting" = "waiting";
-"settings.appearance.state.done" = "done";
 "settings.appearance.state.auto.on" = "auto ✓";
 "settings.appearance.state.auto.off" = "auto";
 "settings.appearance.rightSlot.title" = "01 · Right slot";

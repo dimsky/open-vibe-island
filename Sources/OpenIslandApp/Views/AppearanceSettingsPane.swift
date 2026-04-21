@@ -15,7 +15,7 @@ struct AppearanceSettingsPane: View {
     @State private var previewLayout: V6ClosedLayout = .external
     @State private var previewAutoCycle: Bool = true
 
-    private static let autoCycleOrder: [UnifiedBars.Mode] = [.idle, .running, .waiting, .done]
+    private static let autoCycleOrder: [UnifiedBars.Mode] = [.idle, .running, .waiting]
     private static let autoCycleInterval: TimeInterval = 2.0
 
     private var lang: LanguageManager { model.lang }
@@ -124,7 +124,7 @@ struct AppearanceSettingsPane: View {
             }
 
             // Manual state chips — selecting one turns off auto-cycle.
-            ForEach([UnifiedBars.Mode.idle, .running, .waiting, .done], id: \.self) { mode in
+            ForEach([UnifiedBars.Mode.idle, .running, .waiting], id: \.self) { mode in
                 monoChip(title: title(for: mode), selected: !previewAutoCycle && previewMode == mode) {
                     previewAutoCycle = false
                     previewMode = mode
@@ -312,7 +312,6 @@ struct AppearanceSettingsPane: View {
         case .idle:    lang.t("settings.appearance.state.idle")
         case .running: lang.t("settings.appearance.state.running")
         case .waiting: lang.t("settings.appearance.state.waiting")
-        case .done:    lang.t("settings.appearance.state.done")
         }
     }
 
@@ -333,9 +332,8 @@ struct AppearanceSettingsPane: View {
         guard previewLayout == .external,
               model.islandCenterLabel != .off else { return nil }
         switch (previewMode, model.islandCenterLabel) {
-        case (.idle, _):           return nil
-        case (.done, _):           return "Commit pushed"
-        case (.waiting, _):        return "Permission needed"
+        case (.idle, _):               return nil
+        case (.waiting, _):            return "Permission needed"
         case (.running, .agentAction): return "Claude · editing"
         case (.running, .sessionName): return "open-island"
         case (.running, .off):         return nil

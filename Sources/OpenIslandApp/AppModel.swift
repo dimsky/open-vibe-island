@@ -29,12 +29,6 @@ final class AppModel {
     private static let jumpOverlayDismissLeadTime: Duration = .milliseconds(20)
     static let hoverOpenDelay: TimeInterval = 0.15
 
-    /// How long the closed island lingers on `.done` after the newest
-    /// session completion before falling back to `.idle`. The tick glyph
-    /// holds for this window; after it elapses, the pill animates back to
-    /// idle (bars + breathing center bar).
-    static let islandDoneHoldWindow: TimeInterval = 2.0
-
     struct AcceptanceStep: Identifiable {
         let id: String
         let title: String
@@ -48,17 +42,9 @@ final class AppModel {
         didSet {
             _cachedSessionBuckets = nil
             bridgeServer.updateStateSnapshot(state)
-            scheduleDoneHoldReleaseIfNeeded()
         }
     }
     @ObservationIgnored private var _cachedSessionBuckets: (primary: [AgentSession], overflow: [AgentSession])?
-
-    /// Bumped by a scheduled task once the 2s done-hold window elapses, so
-    /// `islandClosedMode`'s cached result invalidates and the pill drops from
-    /// `.done` to `.idle`. Reading it inside `islandClosedMode` establishes
-    /// the Observable dependency; the ticker value itself is irrelevant.
-    private var _doneHoldTick: Int = 0
-    @ObservationIgnored private var _doneHoldTask: Task<Void, Never>?
 
     /// Monotonic ticket assigned the first time a session ID shows up in the
     /// closed-island's right-slot surfaced set. Drives the grid's display
@@ -619,41 +605,13 @@ final class AppModel {
     // MARK: - v6 closed-island derivation
 
     /// The aggregate UnifiedBars state for the closed island. Waiting beats
-    /// running beats done; idle when no sessions. The `.done` branch only
-    /// holds for `islandDoneHoldWindow` after the newest completion —
-    /// `scheduleDoneHoldReleaseIfNeeded` fires `_doneHoldTick` at the end of
-    /// the window to re-evaluate and fall through to `.idle`.
+    /// running; everything else is idle. Completed sessions are absorbed
+    /// directly into idle so the pill never stops on a tick glyph.
     var islandClosedMode: UnifiedBars.Mode {
-        _ = _doneHoldTick // establish Observable dependency for the 2s timer
         let sessions = surfacedSessions
         if sessions.contains(where: { $0.phase.requiresAttention }) { return .waiting }
         if sessions.contains(where: { $0.phase == .running })       { return .running }
-        if !sessions.isEmpty, sessions.allSatisfy({ $0.phase == .completed }) {
-            let newestCompletion = sessions.map(\.updatedAt).max() ?? .distantPast
-            if Date().timeIntervalSince(newestCompletion) < Self.islandDoneHoldWindow {
-                return .done
-            }
-        }
         return .idle
-    }
-
-    private func scheduleDoneHoldReleaseIfNeeded() {
-        let sessions = surfacedSessions
-        let everyCompleted = !sessions.isEmpty && sessions.allSatisfy { $0.phase == .completed }
-        guard everyCompleted else {
-            _doneHoldTask?.cancel()
-            _doneHoldTask = nil
-            return
-        }
-        let newest = sessions.map(\.updatedAt).max() ?? .distantPast
-        let remaining = Self.islandDoneHoldWindow - Date().timeIntervalSince(newest)
-        guard remaining > 0 else { return }
-        _doneHoldTask?.cancel()
-        _doneHoldTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .seconds(remaining))
-            guard !Task.isCancelled else { return }
-            self?._doneHoldTick &+= 1
-        }
     }
 
     /// The spotlight session powering the center label (if any). Attention
