@@ -830,11 +830,69 @@ struct SessionStateTests {
         #expect(enabled.changed)
         #expect(enabled.featureEnabledByInstaller)
         #expect(enabled.contents.contains("[features]"))
-        #expect(enabled.contents.contains("codex_hooks = true"))
+        #expect(enabled.contents.contains("hooks = true"))
+        #expect(!enabled.contents.contains("codex_hooks = true"))
 
         let removed = CodexHookInstaller.disableCodexHooksFeatureIfManaged(in: enabled.contents)
         #expect(removed.changed)
-        #expect(!removed.contents.contains("codex_hooks = true"))
+        #expect(!removed.contents.contains("hooks = true"))
+    }
+
+    @Test
+    func codexHookInstallerMigratesLegacyFeatureFlag() {
+        let legacyConfig = """
+        [features]
+        codex_hooks = true
+        """
+
+        let enabled = CodexHookInstaller.enableCodexHooksFeature(in: legacyConfig)
+        #expect(enabled.changed)
+        #expect(!enabled.featureEnabledByInstaller)
+        #expect(enabled.contents.contains("hooks = true"))
+        #expect(!enabled.contents.contains("codex_hooks = true"))
+    }
+
+    @Test
+    func codexHookInstallerRemovesLegacyFlagWhenCurrentFlagExists() {
+        let mixedConfig = """
+        [features]
+        hooks = true
+        codex_hooks = true
+        """
+
+        let enabled = CodexHookInstaller.enableCodexHooksFeature(in: mixedConfig)
+        #expect(enabled.changed)
+        #expect(!enabled.featureEnabledByInstaller)
+        #expect(enabled.contents.contains("hooks = true"))
+        #expect(!enabled.contents.contains("codex_hooks = true"))
+    }
+
+    @Test
+    func codexHookInstallerRecognizesCurrentAndLegacyFeatureFlags() {
+        #expect(CodexHookInstaller.isCodexHooksFeatureEnabled(in: """
+        [features]
+        hooks = true
+        """))
+
+        #expect(CodexHookInstaller.isCodexHooksFeatureEnabled(in: """
+        [features]
+        hooks=true # enabled by user
+        """))
+
+        #expect(CodexHookInstaller.isCodexHooksFeatureEnabled(in: """
+        [features]
+        codex_hooks = true
+        """))
+
+        #expect(CodexHookInstaller.isCodexHooksFeatureEnabled(in: """
+        [features]
+        codex_hooks=true # legacy enabled by user
+        """))
+
+        #expect(!CodexHookInstaller.isCodexHooksFeatureEnabled(in: """
+        [features]
+        hooks=false # disabled by user
+        """))
     }
 
     @Test

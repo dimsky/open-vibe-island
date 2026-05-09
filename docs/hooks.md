@@ -45,6 +45,10 @@ Agent
 
 The managed Codex hook installer (`CodexHookInstaller`) installs only `SessionStart`, `UserPromptSubmit`, and `Stop` by default. This is intentional: per-command Bash hooks add terminal log noise, so the default set keeps the workflow low-noise while still providing session lifecycle and usage visibility.
 
+For Codex v0.130 and newer, the installer enables hooks with `[features].hooks = true` in `~/.codex/config.toml`. Older installs that still contain `[features].codex_hooks = true` are recognized as enabled and migrated on the next managed install.
+
+After hooks are installed or changed, Codex may require a manual trust review before running them. Open `/hooks` inside Codex CLI and approve the expected Open Island hook entries. This approval gate belongs to Codex and is not bypassed by Open Island.
+
 The `CodexHookPayload` model and `BridgeServer` can parse richer events (`PreToolUse`, `PostToolUse`) when they are present in the hook payload, and will surface them in the UI if received. However, these richer events are **not** installed by the managed installer and must be configured manually if desired.
 
 > **Note on file-edit coverage**: Codex file edits may use internal apply-patch paths that do not emit `PreToolUse` events. File-edit approval should not be treated as guaranteed `PreToolUse` coverage; the current reliable coverage is command/shell-level events, depending on Codex hook configuration.
