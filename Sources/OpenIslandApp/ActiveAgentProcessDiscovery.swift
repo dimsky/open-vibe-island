@@ -225,7 +225,7 @@ struct ActiveAgentProcessDiscovery {
         processesByPID: [String: RunningProcess]
     ) -> ProcessSnapshot? {
         guard let lsofOutput = lsofOutput(pid: process.pid),
-              let transcriptPath = matchingPath(in: lsofOutput, containing: "/.codex/sessions/", suffix: ".jsonl"),
+              let transcriptPath = bestCodexTranscriptPath(in: lsofOutput),
               let sessionID = firstUUID(in: transcriptPath) else {
             return nil
         }
@@ -252,6 +252,21 @@ struct ActiveAgentProcessDiscovery {
         }
 
         return snapshot
+    }
+
+    private func bestCodexTranscriptPath(in lsofOutput: String) -> String? {
+        let paths = allMatchingPaths(in: lsofOutput, containing: "/.codex/sessions/", suffix: ".jsonl")
+        guard !paths.isEmpty else {
+            return nil
+        }
+
+        return paths.max {
+            codexRolloutSortKey(for: $0) < codexRolloutSortKey(for: $1)
+        }
+    }
+
+    private func codexRolloutSortKey(for path: String) -> String {
+        URL(fileURLWithPath: path).deletingPathExtension().lastPathComponent
     }
 
     private func isClaudeSubagentWorktree(_ path: String) -> Bool {
@@ -483,23 +498,6 @@ struct ActiveAgentProcessDiscovery {
             if value.hasPrefix("/") {
                 return value
             }
-        }
-
-        return nil
-    }
-
-    private func matchingPath(in lsofOutput: String, containing fragment: String, suffix: String) -> String? {
-        for line in lsofOutput.split(whereSeparator: \.isNewline) {
-            guard line.first == "n" else {
-                continue
-            }
-
-            let value = String(line.dropFirst()).trimmingCharacters(in: .whitespacesAndNewlines)
-            guard value.contains(fragment), value.hasSuffix(suffix) else {
-                continue
-            }
-
-            return value
         }
 
         return nil

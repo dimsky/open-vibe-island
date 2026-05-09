@@ -685,6 +685,9 @@ final class AppModel {
                 self.codexAppServer.disconnect()
             }
         }
+        monitoring.onCodexCLIProcessesObserved = { [weak self] activeSessionIDs in
+            self?.discovery.rediscoverCodexCLISessionsIfNeeded(activeSessionIDs: activeSessionIDs)
+        }
 
         refreshOverlayDisplayConfiguration()
         hasFinishedInit = true
