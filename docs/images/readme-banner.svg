@@ -1,0 +1,28 @@
+<svg width="1200" height="360" viewBox="0 0 1200 360" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Open Island</title>
+  <desc id="desc">Open Island wordmark with the Bar + Dot logo and the tagline agents in your menu bar.</desc>
+  <defs>
+    <filter id="soft-shadow" x="96" y="54" width="1008" height="252" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="28" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="360" rx="44" fill="#0D0D0F"/>
+  <rect x="1" y="1" width="1198" height="358" rx="43" stroke="#F1EAD9" stroke-opacity="0.10" stroke-width="2"/>
+
+  <g filter="url(#soft-shadow)">
+    <rect x="120" y="72" width="960" height="216" rx="32" fill="#151417"/>
+    <rect x="120.5" y="72.5" width="959" height="215" rx="31.5" stroke="#F1EAD9" stroke-opacity="0.08"/>
+
+    <g transform="translate(220 136)">
+      <path d="M0 0H220V44C220 68.3005 200.301 88 176 88H44C19.6995 88 0 68.3005 0 44V0Z" fill="#F1EAD9"/>
+      <rect x="42" y="39" width="96" height="10" rx="5" fill="#0D0D0F"/>
+      <circle cx="164" cy="44" r="9" fill="#0D0D0F"/>
+    </g>
+
+    <g transform="translate(500 118)">
+      <text x="0" y="68" fill="#F1EAD9" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="72" font-weight="760" letter-spacing="-1.8">Open Island</text>
+      <text x="2" y="118" fill="#F1EAD9" fill-opacity="0.56" font-family="'SF Mono', 'JetBrains Mono', ui-monospace, monospace" font-size="25" font-weight="500">agents in your menu bar</text>
+    </g>
+  </g>
+</svg>

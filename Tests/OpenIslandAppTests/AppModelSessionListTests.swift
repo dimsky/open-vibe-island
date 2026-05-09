@@ -4,7 +4,29 @@ import Testing
 import OpenIslandCore
 
 @MainActor
+@Suite(.serialized)
 struct AppModelSessionListTests {
+    init() {
+        [
+            "appearance.island.v8.stateIndicator",
+            "appearance.island.v8.sessionGroup",
+            "appearance.island.v8.sessionSort",
+            "appearance.island.v8.completedStaleThreshold",
+            "appearance.island.v8.notch.rightSlot",
+            "appearance.island.v8.notch.centerLabel",
+            "appearance.island.v8.notch.stateIndicator",
+            "appearance.island.v8.notch.sessionGroup",
+            "appearance.island.v8.notch.sessionSort",
+            "appearance.island.v8.notch.completedStaleThreshold",
+            "appearance.island.v8.topBar.rightSlot",
+            "appearance.island.v8.topBar.centerLabel",
+            "appearance.island.v8.topBar.stateIndicator",
+            "appearance.island.v8.topBar.sessionGroup",
+            "appearance.island.v8.topBar.sessionSort",
+            "appearance.island.v8.topBar.completedStaleThreshold",
+        ].forEach(UserDefaults.standard.removeObject(forKey:))
+    }
+
     @Test
     func islandListSessionsOnlyIncludeLiveAttachedSessions() {
         let now = Date(timeIntervalSince1970: 2_000)
@@ -184,6 +206,151 @@ struct AppModelSessionListTests {
 
         #expect(model.liveSessionCount == 1)
         #expect(!model.shouldShowSessionBootstrapPlaceholder)
+    }
+
+    @Test
+    func freshCompletedSessionsSortAheadOfV8StaleCompletedSessions() {
+        let now = Date()
+        let model = AppModel()
+
+        var staleCompleted = AgentSession(
+            id: "stale-completed",
+            title: "Codex · stale",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Finished earlier",
+            updatedAt: now.addingTimeInterval(-301),
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "stale",
+                paneTitle: "codex ~/stale",
+                workingDirectory: "/tmp/stale",
+                terminalSessionID: "ghostty-stale"
+            )
+        )
+        staleCompleted.isProcessAlive = true
+
+        var freshCompleted = AgentSession(
+            id: "fresh-completed",
+            title: "Codex · fresh",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Finished just now",
+            updatedAt: now.addingTimeInterval(-299),
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "fresh",
+                paneTitle: "codex ~/fresh",
+                workingDirectory: "/tmp/fresh",
+                terminalSessionID: "ghostty-fresh"
+            )
+        )
+        freshCompleted.isProcessAlive = true
+
+        model.state = SessionState(sessions: [staleCompleted, freshCompleted])
+
+        #expect(model.islandListSessions.map(\.id) == ["fresh-completed", "stale-completed"])
+    }
+
+    @Test
+    func islandSessionSectionsGroupStaleCompletedIntoIdle() {
+        let now = Date()
+        let model = AppModel()
+        model.islandSessionGroup = .state
+        model.completedStaleThreshold = .fiveMinutes
+
+        var approval = listSession(id: "approval", phase: .waitingForApproval, updatedAt: now)
+        approval.permissionRequest = PermissionRequest(
+            title: "Approve",
+            summary: "Run tool",
+            affectedPath: "/tmp"
+        )
+
+        var done = listSession(id: "done", phase: .completed, updatedAt: now.addingTimeInterval(-60))
+        var stale = listSession(id: "stale", phase: .completed, updatedAt: now.addingTimeInterval(-360))
+        approval.isProcessAlive = true
+        done.isProcessAlive = true
+        stale.isProcessAlive = true
+
+        model.state = SessionState(sessions: [stale, done, approval])
+
+        #expect(model.islandSessionSections.map(\.id) == ["state-approval", "state-done", "state-idle"])
+        #expect(model.islandSessionSections.map(\.sessions.first?.id) == ["approval", "done", "stale"])
+    }
+
+    @Test
+    func islandSessionSectionsKeepCompletedInDoneWhenStaleThresholdIsNever() {
+        let now = Date()
+        let model = AppModel()
+        model.islandSessionGroup = .state
+        model.completedStaleThreshold = .never
+
+        var oldDone = listSession(id: "old-done", phase: .completed, updatedAt: now.addingTimeInterval(-86_400))
+        oldDone.isProcessAlive = true
+        model.state = SessionState(sessions: [oldDone])
+
+        #expect(model.islandSessionSections.map(\.id) == ["state-done"])
+        #expect(model.islandSessionSections.first?.sessions.first?.id == "old-done")
+    }
+
+    @Test
+    func islandSessionListCanSortByLastUpdate() {
+        let now = Date()
+        let model = AppModel()
+        model.islandSessionSort = .lastUpdate
+
+        var olderRunning = listSession(id: "older-running", phase: .running, updatedAt: now.addingTimeInterval(-120))
+        var newerCompleted = listSession(id: "newer-completed", phase: .completed, updatedAt: now.addingTimeInterval(-10))
+        olderRunning.isProcessAlive = true
+        newerCompleted.isProcessAlive = true
+
+        model.state = SessionState(sessions: [olderRunning, newerCompleted])
+
+        #expect(model.islandListSessions.map(\.id) == ["newer-completed", "older-running"])
+    }
+
+    @Test
+    func islandAppearancePreferencesPersistPerDisplayProfile() {
+        let model = AppModel()
+        model.updateAppearancePreferences(for: .notch) {
+            $0.usageDisplay = .hidden
+            $0.sessionGroup = .state
+            $0.sessionStateIndicator = .bar
+            $0.completedStaleThreshold = .twoMinutes
+        }
+        model.updateAppearancePreferences(for: .topBar) {
+            $0.usageDisplay = .compact
+            $0.sessionGroup = .project
+            $0.sessionStateIndicator = .tint
+            $0.completedStaleThreshold = .never
+        }
+
+        model.overlayPlacementDiagnostics = placementDiagnostics(mode: .notch)
+        #expect(model.islandUsageDisplay == .hidden)
+        #expect(model.islandSessionGroup == .state)
+        #expect(model.islandSessionStateIndicator == .bar)
+        #expect(model.completedStaleThreshold == .twoMinutes)
+
+        model.overlayPlacementDiagnostics = placementDiagnostics(mode: .topBar)
+        #expect(model.islandUsageDisplay == .compact)
+        #expect(model.islandSessionGroup == .project)
+        #expect(model.islandSessionStateIndicator == .tint)
+        #expect(model.completedStaleThreshold == .never)
+
+        let reloaded = AppModel()
+        reloaded.overlayPlacementDiagnostics = placementDiagnostics(mode: .notch)
+        #expect(reloaded.islandUsageDisplay == .hidden)
+        #expect(reloaded.islandSessionGroup == .state)
+        #expect(reloaded.islandSessionStateIndicator == .bar)
+        reloaded.overlayPlacementDiagnostics = placementDiagnostics(mode: .topBar)
+        #expect(reloaded.islandUsageDisplay == .compact)
+        #expect(reloaded.islandSessionGroup == .project)
+        #expect(reloaded.islandSessionStateIndicator == .tint)
+        #expect(reloaded.completedStaleThreshold == .never)
     }
 
     @Test
@@ -496,20 +663,6 @@ struct AppModelSessionListTests {
     }
 
     @Test
-    func idleEdgeModeOnlyAppliesWhileCollapsed() {
-        let model = AppModel()
-        let originalSetting = model.hideIdleIslandToEdge
-        defer { model.hideIdleIslandToEdge = originalSetting }
-        model.hideIdleIslandToEdge = true
-
-        model.notchStatus = .closed
-        #expect(model.showsIdleEdgeWhenCollapsed)
-
-        model.notchStatus = .opened
-        #expect(!model.showsIdleEdgeWhenCollapsed)
-    }
-
-    @Test
     func completionNotificationRequiresSurfaceEntryBeforePointerExitCollapse() {
         let model = AppModel()
         // Add a completed session so autoDismissesWhenPresentedAsNotification can check phase
@@ -543,6 +696,44 @@ struct AppModelSessionListTests {
         #expect(model.notchOpenReason == .notification)
 
         model.notePointerInsideIslandSurface()
+        model.handlePointerExitedIslandSurface()
+
+        #expect(model.notchStatus == .closed)
+        #expect(model.notchOpenReason == nil)
+    }
+
+    @Test
+    func completionNotificationDefersTimedCollapseWhilePointerIsInside() {
+        let model = AppModel()
+        model.applyTrackedEvent(
+            .sessionStarted(SessionStarted(
+                sessionID: "session-1",
+                title: "Test",
+                tool: .codex,
+                summary: "Done",
+                timestamp: .now
+            )),
+            updateLastActionMessage: false
+        )
+        model.applyTrackedEvent(
+            .sessionCompleted(SessionCompleted(
+                sessionID: "session-1",
+                summary: "Done",
+                timestamp: .now
+            )),
+            updateLastActionMessage: false
+        )
+        model.notchStatus = .opened
+        model.notchOpenReason = .notification
+        model.islandSurface = .sessionList(actionableSessionID: "session-1")
+
+        #expect(model.shouldAutoCollapseOnMouseLeave)
+        #expect(!model.shouldDeferTimedNotificationAutoCollapse)
+
+        model.notePointerInsideIslandSurface()
+
+        #expect(model.shouldDeferTimedNotificationAutoCollapse)
+
         model.handlePointerExitedIslandSurface()
 
         #expect(model.notchStatus == .closed)
@@ -883,5 +1074,38 @@ struct AppModelSessionListTests {
 
         let claudeSessions = model.state.sessions.filter { $0.tool == .claudeCode }
         #expect(claudeSessions.count == 2)
+    }
+
+    private func listSession(id: String, phase: SessionPhase, updatedAt: Date) -> AgentSession {
+        AgentSession(
+            id: id,
+            title: "Codex · \(id)",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: phase,
+            summary: phase.displayName,
+            updatedAt: updatedAt,
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: id,
+                paneTitle: "codex ~/\(id)",
+                workingDirectory: "/tmp/\(id)",
+                terminalSessionID: "ghostty-\(id)"
+            )
+        )
+    }
+
+    private func placementDiagnostics(mode: OverlayPlacementMode) -> OverlayPlacementDiagnostics {
+        OverlayPlacementDiagnostics(
+            targetScreenID: mode == .notch ? "display-notch" : "display-topbar",
+            targetScreenName: mode == .notch ? "Built-in Display" : "External Display",
+            selectionSummary: "test",
+            mode: mode,
+            screenFrame: NSRect(x: 0, y: 0, width: 1512, height: 982),
+            visibleFrame: NSRect(x: 0, y: 0, width: 1512, height: 944),
+            safeAreaInsets: NSEdgeInsets(top: mode == .notch ? 37 : 0, left: 0, bottom: 0, right: 0),
+            overlayFrame: NSRect(x: 400, y: 820, width: 700, height: 160)
+        )
     }
 }

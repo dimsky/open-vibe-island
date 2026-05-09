@@ -99,6 +99,61 @@ struct AgentSessionPresentationTests {
     }
 
     @Test
+    func completedSessionBecomesV8StaleAfterFiveMinutes() {
+        let referenceDate = Date(timeIntervalSince1970: 10_000)
+        let session = AgentSession(
+            id: "session-1",
+            title: "Codex · worktree",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Ready",
+            updatedAt: referenceDate.addingTimeInterval(-301)
+        )
+
+        #expect(session.isStaleCompletedForIsland(at: referenceDate))
+        #expect(session.islandPresence(at: referenceDate) == .active)
+    }
+
+    @Test
+    func completedSessionDoesNotBecomeV8StaleWhenThresholdIsNever() {
+        let referenceDate = Date(timeIntervalSince1970: 10_000)
+        let session = AgentSession(
+            id: "session-1",
+            title: "Codex · worktree",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Ready",
+            updatedAt: referenceDate.addingTimeInterval(-86_400)
+        )
+
+        #expect(!session.isStaleCompletedForIsland(
+            at: referenceDate,
+            threshold: IslandCompletedStaleThreshold.never.seconds
+        ))
+    }
+
+    @Test
+    func nonCompletedSessionsDoNotBecomeV8Stale() {
+        let referenceDate = Date(timeIntervalSince1970: 10_000)
+        let session = AgentSession(
+            id: "session-1",
+            title: "Codex · worktree",
+            tool: .codex,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .running,
+            summary: "Working",
+            updatedAt: referenceDate.addingTimeInterval(-3_600)
+        )
+
+        #expect(!session.isStaleCompletedForIsland(at: referenceDate))
+    }
+
+    @Test
     func liveHeadlineUsesLatestPromptForAttachedSession() {
         let session = AgentSession(
             id: "session-1",

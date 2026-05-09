@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="Assets/Brand/app-icon-cat.png" alt="Open Island" width="128" height="128">
+  <img src="docs/images/readme-banner.svg" alt="Open Island - agents in your menu bar" width="760">
 </p>
 
 <h1 align="center">Open Island</h1>
