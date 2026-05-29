@@ -693,6 +693,22 @@ final class OverlayPanelController {
 private final class NotchPanel: NSPanel {
     override var canBecomeKey: Bool { true }
     override var canBecomeMain: Bool { false }
+
+    override func sendEvent(_ event: NSEvent) {
+        // The overlay is a `.nonactivatingPanel`, so a click arrives while the
+        // window is not key. SwiftUI consumes that first click for key
+        // acquisition instead of firing the tap gesture, so the user has to
+        // click twice. Make the panel key BEFORE `super.sendEvent` dispatches
+        // the click to SwiftUI.
+        //
+        // This must live here, not in `NotchHostingView.mouseDown`: SwiftUI's
+        // internal hosting views handle `mouseDown` directly, so the event
+        // never bubbles up to that override — but `sendEvent` always runs.
+        if event.type == .leftMouseDown, !isKeyWindow {
+            makeKey()
+        }
+        super.sendEvent(event)
+    }
 }
 
 // MARK: - NotchHostingView
