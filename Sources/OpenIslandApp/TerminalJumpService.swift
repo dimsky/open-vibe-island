@@ -343,7 +343,7 @@ struct TerminalJumpService {
                     return "Focused the matching iTerm session."
                 }
             case "com.cmuxterm.app":
-                if jumpToCmuxTerminal(target) {
+                if try jumpToCmuxTerminal(target) {
                     return "Focused the matching cmux terminal."
                 }
             case "com.mitchellh.ghostty":
@@ -487,76 +487,53 @@ struct TerminalJumpService {
         return processRunner(cli, [projectPath])
     }
 
-    private func jumpToCmuxTerminal(_ target: JumpTarget) -> Bool {
-        // Try the cmux Unix socket API to focus a specific surface.
-        guard let surfaceID = target.terminalSessionID,
-              !surfaceID.isEmpty else {
-            // No surface ID — fall back to generic app activation.
-            return false
-        }
-
-        guard let socketPath = Self.resolveCmuxSocketPath() else {
-            return false
-        }
-
-        let fd = socket(AF_UNIX, SOCK_STREAM, 0)
-        guard fd >= 0 else { return false }
-        defer { close(fd) }
-
-        var addr = sockaddr_un()
-        addr.sun_family = sa_family_t(AF_UNIX)
-        let pathBytes = socketPath.utf8CString
-        precondition(pathBytes.count <= MemoryLayout.size(ofValue: addr.sun_path))
-        withUnsafeMutableBytes(of: &addr.sun_path) { sunPath in
-            for (i, byte) in pathBytes.enumerated() {
-                sunPath[i] = UInt8(bitPattern: byte)
-            }
-        }
-
-        let connectResult = withUnsafePointer(to: &addr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
-                Darwin.connect(fd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
-        }
-        guard connectResult == 0 else { return false }
-
-        // Send JSON-RPC surface.focus request.
-        let request = #"{"jsonrpc":"2.0","method":"surface.focus","params":{"surface_id":"\#(surfaceID)"},"id":1}"# + "\n"
-        let sent = request.withCString { ptr in
-            Darwin.send(fd, ptr, strlen(ptr), 0)
-        }
-        guard sent > 0 else { return false }
-
-        // Best-effort: activate the cmux app window.
-        try? openAction(["-b", "com.cmuxterm.app"])
-
-        return true
+    private func jumpToCmuxTerminal(_ target: JumpTarget) throws -> Bool {
+        // cmux exposes an AppleScript dictionary mirroring Ghostty's
+        // (application → windows → tabs → terminals, where a terminal's `id`
+        // is the CMUX_SURFACE_ID). Apple Events are cross-process and are NOT
+        // restricted to cmux's own socket process tree, so this works from a
+        // GUI app — unlike `cmux rpc` over the unix socket, which the cmux
+        // server closes for connections outside its tree (EPIPE).
+        try runAppleScript(cmuxJumpScript(for: target)) == "matched"
     }
 
-    private static func resolveCmuxSocketPath() -> String? {
-        let fm = FileManager.default
+    func cmuxJumpScript(for target: JumpTarget) -> String {
+        let terminalSessionID = escapeAppleScript(target.terminalSessionID)
 
-        // 1. cmux writes the active socket path here on startup.
-        if let redirected = try? String(contentsOfFile: "/tmp/cmux-last-socket-path", encoding: .utf8)
-            .trimmingCharacters(in: .whitespacesAndNewlines),
-           !redirected.isEmpty,
-           fm.fileExists(atPath: redirected) {
-            return redirected
-        }
+        return """
+        tell application "cmux"
+            if not (it is running) then return ""
+            if "\(terminalSessionID)" is "" then return ""
+            activate
 
-        // 2. Standard Application Support location.
-        let appSupportPath = NSHomeDirectory() + "/Library/Application Support/cmux/cmux.sock"
-        if fm.fileExists(atPath: appSupportPath) {
-            return appSupportPath
-        }
+            set targetWindow to missing value
+            set targetTab to missing value
+            set targetTerminal to missing value
 
-        // 3. Legacy fallback.
-        let legacyPath = "/tmp/cmux.sock"
-        if fm.fileExists(atPath: legacyPath) {
-            return legacyPath
-        }
+            repeat with aWindow in windows
+                repeat with aTab in tabs of aWindow
+                    repeat with aTerminal in terminals of aTab
+                        if (id of aTerminal as text) is "\(terminalSessionID)" then
+                            set targetWindow to aWindow
+                            set targetTab to aTab
+                            set targetTerminal to aTerminal
+                            exit repeat
+                        end if
+                    end repeat
+                    if targetTerminal is not missing value then exit repeat
+                end repeat
+                if targetTerminal is not missing value then exit repeat
+            end repeat
 
-        return nil
+            if targetTerminal is missing value then return ""
+
+            activate window targetWindow
+            select tab targetTab
+            focus targetTerminal
+            return "matched"
+        end tell
+        return ""
+        """
     }
 
     // MARK: - Tmux CLI-based jump

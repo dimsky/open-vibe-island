@@ -498,6 +498,48 @@ final class TerminalJumpServiceTests: XCTestCase {
         XCTAssertEqual(processInvocations.values.first?.0, "trae")
         XCTAssertEqual(processInvocations.values.first?.1, ["-r", "/Users/test/open-vibe-island"])
     }
+
+    func testCmuxJumpFocusesSurfaceViaAppleScript() throws {
+        // cmux focus uses AppleScript (terminal `id` == CMUX_SURFACE_ID),
+        // mirroring Ghostty — Apple Events are cross-process, unlike the cmux
+        // unix socket which rejects connections outside its process tree.
+        let scriptBox = AppleScriptCaptureBox()
+        let surfaceID = "A1B2C3D4-E5F6-47A8-B9C0-D1E2F3A4B5C6"
+        let service = TerminalJumpService(
+            applicationResolver: { bundleIdentifier in
+                bundleIdentifier == "com.cmuxterm.app"
+                    ? URL(fileURLWithPath: "/Applications/cmux.app") : nil
+            },
+            appRunningChecker: { bundleIdentifier in
+                bundleIdentifier == "com.cmuxterm.app"
+            },
+            appleScriptRunner: { script in
+                scriptBox.scripts.append(script)
+                return "matched"
+            }
+        )
+
+        let result = try service.jump(
+            to: JumpTarget(
+                terminalApp: "cmux",
+                workspaceName: "my-session",
+                paneTitle: "Claude my-session",
+                workingDirectory: "/Users/test/my-session",
+                terminalSessionID: surfaceID
+            )
+        )
+
+        XCTAssertEqual(result, "Focused the matching cmux terminal.")
+        XCTAssertEqual(scriptBox.scripts.count, 1)
+        let script = scriptBox.scripts.first ?? ""
+        XCTAssertTrue(script.contains("tell application \"cmux\""))
+        XCTAssertTrue(script.contains(surfaceID))
+        XCTAssertTrue(script.contains("focus targetTerminal"))
+    }
+}
+
+final class AppleScriptCaptureBox: @unchecked Sendable {
+    var scripts: [String] = []
 }
 
 final class ReadSequenceBox: @unchecked Sendable {
