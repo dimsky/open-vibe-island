@@ -402,6 +402,15 @@ final class AppModel {
         }
     }
 
+    /// Aligns the Personalization editing target to the profile the live island
+    /// is currently rendering (`activeAppearanceProfile`). Called when the
+    /// Personalization pane appears so edits land on the profile the user can
+    /// actually see — otherwise a notch-Mac user editing the default top-bar
+    /// profile sees no effect on their island.
+    func beginEditingActiveAppearanceProfile() {
+        appearanceSettingsProfile = activeAppearanceProfile
+    }
+
     private func appearancePreferencesDidChange(
         oldValue: IslandAppearancePreferences,
         newValue: IslandAppearancePreferences

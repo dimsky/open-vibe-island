@@ -38,6 +38,12 @@ struct AppearanceSettingsPane: View {
         }
         .background(Color(red: 0.055, green: 0.055, blue: 0.06))
         .navigationTitle(lang.t("settings.tab.appearance"))
+        .onAppear {
+            // Edit the profile the live island is actually rendering, so
+            // changes are immediately visible instead of silently landing on
+            // the other display profile.
+            model.beginEditingActiveAppearanceProfile()
+        }
     }
 
     // MARK: - Display profile
@@ -87,9 +93,20 @@ struct AppearanceSettingsPane: View {
                     )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(title)
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(V6Palette.paper.opacity(0.94))
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(V6Palette.paper.opacity(0.94))
+                        if profile == model.activeAppearanceProfile {
+                            Text(lang.t("settings.appearance.profile.activeBadge"))
+                                .font(.system(size: 9, weight: .semibold, design: .monospaced))
+                                .tracking(0.6)
+                                .foregroundStyle(V6Palette.ink)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Capsule().fill(V6Palette.paper.opacity(0.9)))
+                        }
+                    }
                     Text(note)
                         .font(.system(size: 11.5, weight: .medium))
                         .foregroundStyle(V6Palette.paper.opacity(0.42))

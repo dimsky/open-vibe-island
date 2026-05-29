@@ -24,6 +24,7 @@ struct AppModelSessionListTests {
             "appearance.island.v8.topBar.sessionGroup",
             "appearance.island.v8.topBar.sessionSort",
             "appearance.island.v8.topBar.completedStaleThreshold",
+            "appearance.island.v8.settingsProfile",
             "app.suppressFrontmostNotifications",
             "feature.completionReply.enabled",
             "overlay.sound.muted",
@@ -354,6 +355,26 @@ struct AppModelSessionListTests {
         #expect(reloaded.islandSessionGroup == .project)
         #expect(reloaded.islandSessionStateIndicator == .tint)
         #expect(reloaded.completedStaleThreshold == .never)
+    }
+
+    @Test
+    func beginEditingActiveAppearanceProfileAlignsSettingsToLiveProfile() {
+        let model = AppModel()
+
+        // Live island placed on a notched display → active profile is .notch,
+        // while the Personalization pane still defaults to editing top-bar.
+        model.overlayPlacementDiagnostics = placementDiagnostics(mode: .notch)
+        model.appearanceSettingsProfile = .topBar
+
+        // Opening the pane realigns the editing target to the profile the live
+        // island actually renders, so edits are immediately visible.
+        model.beginEditingActiveAppearanceProfile()
+        #expect(model.appearanceSettingsProfile == .notch)
+
+        // Tracks the active profile when the physical placement changes.
+        model.overlayPlacementDiagnostics = placementDiagnostics(mode: .topBar)
+        model.beginEditingActiveAppearanceProfile()
+        #expect(model.appearanceSettingsProfile == .topBar)
     }
 
     @Test

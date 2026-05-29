@@ -69,6 +69,7 @@
 "settings.appearance.sessionPreview" = "预览";
 "settings.appearance.profile.title" = "显示器配置";
 "settings.appearance.profile.note" = "选择正在配置的屏幕类型。Open Island 会在悬浮窗切换屏幕时自动应用对应配置。";
+"settings.appearance.profile.activeBadge" = "当前生效";
 "settings.appearance.profile.external.title" = "外接屏";
 "settings.appearance.profile.external.note" = "没有 MacBook 刘海外圆角的顶部栏布局。";
 "settings.appearance.profile.macbook.title" = "MacBook 刘海屏";

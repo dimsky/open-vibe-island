@@ -69,6 +69,7 @@
 "settings.appearance.sessionPreview" = "預覽";
 "settings.appearance.profile.title" = "顯示器配置";
 "settings.appearance.profile.note" = "選擇正在配置的螢幕類型。Open Island 會在浮窗切換螢幕時自動套用對應配置。";
+"settings.appearance.profile.activeBadge" = "目前生效";
 "settings.appearance.profile.external.title" = "外接螢幕";
 "settings.appearance.profile.external.note" = "沒有 MacBook 凹槽外圓角的頂部列布局。";
 "settings.appearance.profile.macbook.title" = "MacBook 凹槽螢幕";
