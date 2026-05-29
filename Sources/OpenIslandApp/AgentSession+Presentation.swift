@@ -107,11 +107,26 @@ extension AgentSession {
             return nil
         }
 
-        return "\(jumpTarget.terminalApp) · \(jumpTarget.workspaceName)"
+        let workspace = jumpTarget.workspaceName.trimmedForSurface
+        guard let badge = spotlightTerminalBadge else {
+            return workspace.isEmpty ? nil : workspace
+        }
+
+        return workspace.isEmpty ? badge : "\(badge) · \(workspace)"
     }
 
+    /// The terminal app badge, suppressing the `"Unknown"` sentinel that
+    /// session discovery writes when it cannot classify the host terminal.
+    /// Surfacing it rendered a misleading "Unknown" chip on otherwise-valid
+    /// live rows.
     var spotlightTerminalBadge: String? {
-        jumpTarget?.terminalApp
+        guard let terminalApp = jumpTarget?.terminalApp.trimmedForSurface,
+              !terminalApp.isEmpty,
+              terminalApp.lowercased() != "unknown" else {
+            return nil
+        }
+
+        return terminalApp
     }
 
     var spotlightWorkspaceName: String {
@@ -264,8 +279,36 @@ extension AgentSession {
                 return assistantMessage
             }
 
+            // A recovered session often has no assistant text in metadata but a
+            // real summary (the last user prompt or a parsed message). Surface
+            // it before falling back to a bare status so rows with actual
+            // history stop collapsing to "Ready".
+            if let summaryFallback = completedActivitySummaryFallback {
+                return summaryFallback
+            }
+
             return jumpTarget != nil ? "Ready" : "Completed"
         }
+    }
+
+    /// The session summary, unless it is one of the synthetic/transcript
+    /// placeholders that carry no real activity (for those, the neutral
+    /// "Ready"/"Completed" affordance reads better than plumbing text).
+    private var completedActivitySummaryFallback: String? {
+        let trimmed = summary.trimmedForSurface
+        guard !trimmed.isEmpty else {
+            return nil
+        }
+
+        let placeholderPrefixes = [
+            "Claude session detected from",
+            "Recovered Claude session in",
+        ]
+        if placeholderPrefixes.contains(where: { trimmed.hasPrefix($0) }) {
+            return nil
+        }
+
+        return trimmed
     }
 
     var spotlightActivityTone: SpotlightActivityTone {

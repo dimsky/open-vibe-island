@@ -33,6 +33,9 @@ final class ProcessMonitoringCoordinator {
     let activeAgentProcessDiscovery = ActiveAgentProcessDiscovery()
 
     @ObservationIgnored
+    private let claudeTranscriptDiscovery = ClaudeTranscriptDiscovery()
+
+    @ObservationIgnored
     private let terminalSessionAttachmentProbe = TerminalSessionAttachmentProbe()
 
     @ObservationIgnored
@@ -555,9 +558,11 @@ final class ProcessMonitoringCoordinator {
         activeProcesses: [ActiveProcessSnapshot],
         now: Date = .now
     ) -> [AgentSession] {
+        let existingSynthetic = existingSessions.filter { isSyntheticClaudeSession($0) }
         let baseSessions = existingSessions.filter { !isSyntheticClaudeSession($0) }
         let syntheticSessions = syntheticClaudeSessions(
             existingSessions: baseSessions,
+            existingSynthetic: existingSynthetic,
             activeProcesses: activeProcesses,
             now: now
         )
@@ -567,6 +572,7 @@ final class ProcessMonitoringCoordinator {
 
     private func syntheticClaudeSessions(
         existingSessions: [AgentSession],
+        existingSynthetic: [AgentSession],
         activeProcesses: [ActiveProcessSnapshot],
         now: Date
     ) -> [AgentSession] {
@@ -582,10 +588,30 @@ final class ProcessMonitoringCoordinator {
             activeProcesses: activeClaudeProcesses
         )
 
+        let existingSyntheticByID = Dictionary(
+            existingSynthetic.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
         return activeClaudeProcesses
             .filter { !representedProcessKeys.contains(processIdentityKey($0)) }
             .sorted { processIdentityKey($0) < processIdentityKey($1) }
-            .map { syntheticClaudeSession(for: $0, now: now) }
+            .map { process in
+                let id = "\(syntheticClaudeSessionPrefix)\(processIdentityKey(process))"
+                if var existing = existingSyntheticByID[id] {
+                    // Reuse the already-enriched session across reconcile cycles
+                    // instead of rebuilding it (which previously reset updatedAt
+                    // to "now" every 2s). Keep its activity time tracking the
+                    // transcript's latest write without re-parsing the file.
+                    existing.isProcessAlive = true
+                    if let path = process.transcriptPath,
+                       let modified = modificationDate(atPath: path) {
+                        existing.updatedAt = max(existing.updatedAt, modified)
+                    }
+                    return existing
+                }
+                return syntheticClaudeSession(for: process, now: now)
+            }
     }
 
     private func syntheticClaudeSession(
@@ -616,6 +642,22 @@ final class ProcessMonitoringCoordinator {
                 tmuxSocketPath: process.tmuxSocketPath
             )
         )
+
+        // When process inspection found the open transcript, parse it once so
+        // the row shows the real last message, prompts, and activity time
+        // instead of a contentless "detected from …" placeholder pinned to now.
+        if let transcriptPath = process.transcriptPath,
+           let parsed = claudeTranscriptDiscovery.session(forTranscriptAt: transcriptPath) {
+            session.summary = parsed.summary
+            session.updatedAt = parsed.updatedAt
+            if let metadata = parsed.claudeMetadata {
+                session.claudeMetadata = metadata
+            }
+        } else if let transcriptPath = process.transcriptPath,
+                  let modified = modificationDate(atPath: transcriptPath) {
+            session.updatedAt = modified
+        }
+
         session.isProcessAlive = true
         return session
     }
@@ -812,7 +854,10 @@ final class ProcessMonitoringCoordinator {
 
                 sessions[index].jumpTarget?.terminalTTY = processTTY
                 sessions[index].attachmentState = .attached
-                sessions[index].updatedAt = .now
+                // Adopting a TTY is internal plumbing — it must NOT bump the
+                // user-visible activity time. Resetting `updatedAt` here pinned
+                // restored/transcript sessions to app-launch time, so the age
+                // badge counted up from when Open Island opened.
                 changed = true
                 break
             }

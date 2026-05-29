@@ -28,6 +28,38 @@ public final class ClaudeTranscriptDiscovery: @unchecked Sendable {
         self.maxFiles = maxFiles
     }
 
+    /// Parse a single transcript file into a session, sourcing `updatedAt`
+    /// from the file's modification date when no in-content timestamp is
+    /// found. Used to enrich live sessions discovered via process inspection
+    /// (which know the transcript path but not its contents) so the island row
+    /// shows real activity and time instead of a placeholder.
+    public func session(forTranscriptAt path: String) -> AgentSession? {
+        let fileURL = URL(fileURLWithPath: path)
+        let modifiedAt = (try? fileURL.resourceValues(forKeys: [.contentModificationDateKey]))?
+            .contentModificationDate ?? .now
+        return parseSession(at: fileURL, fallbackUpdatedAt: modifiedAt)
+    }
+
+    /// Claude transcript timestamps are ISO-8601 with fractional seconds
+    /// (e.g. `2026-05-29T16:42:19.610Z`). A bare `ISO8601DateFormatter`
+    /// only accepts whole seconds and returns `nil` for fractional input,
+    /// which silently dropped every in-content timestamp and forced
+    /// `updatedAt` back to the file's modification date. Try the fractional
+    /// formatter first, then fall back to the whole-second variant for
+    /// older/other producers. (Formatters are created locally rather than
+    /// cached because `ISO8601DateFormatter` is not `Sendable`.)
+    static func parseTimestamp(_ text: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: text) {
+            return date
+        }
+
+        let wholeSeconds = ISO8601DateFormatter()
+        wholeSeconds.formatOptions = [.withInternetDateTime]
+        return wholeSeconds.date(from: text)
+    }
+
     public func discoverRecentSessions(now: Date = .now) -> [AgentSession] {
         guard fileManager.fileExists(atPath: rootURL.path),
               let enumerator = fileManager.enumerator(
@@ -104,7 +136,7 @@ public final class ClaudeTranscriptDiscovery: @unchecked Sendable {
             }
 
             if let timestampText = object["timestamp"] as? String,
-               let timestamp = ISO8601DateFormatter().date(from: timestampText) {
+               let timestamp = Self.parseTimestamp(timestampText) {
                 updatedAt = timestamp
             }
 

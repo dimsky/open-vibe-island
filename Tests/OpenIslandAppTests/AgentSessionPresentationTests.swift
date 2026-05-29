@@ -333,4 +333,107 @@ struct AgentSessionPresentationTests {
         #expect(session.spotlightSecondaryText == "Running Search")
         #expect(session.displayCurrentToolName == "Search")
     }
+
+    // MARK: - "Unknown" terminal sentinel suppression (symptom A)
+
+    @Test
+    func terminalBadgeSuppressesUnknownSentinel() {
+        let session = AgentSession(
+            id: "session-1",
+            title: "Claude · worktree",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Done",
+            updatedAt: .now,
+            jumpTarget: JumpTarget(
+                terminalApp: "Unknown",
+                workspaceName: "worktree",
+                paneTitle: "Claude worktree",
+                workingDirectory: "/tmp/worktree"
+            )
+        )
+
+        #expect(session.spotlightTerminalBadge == nil)
+        // The label drops the sentinel but keeps the workspace context.
+        #expect(session.spotlightTerminalLabel == "worktree")
+    }
+
+    @Test
+    func terminalBadgeKeepsRecognizedTerminal() {
+        let session = AgentSession(
+            id: "session-1",
+            title: "Claude · worktree",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Done",
+            updatedAt: .now,
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "worktree",
+                paneTitle: "Claude worktree",
+                workingDirectory: "/tmp/worktree"
+            )
+        )
+
+        #expect(session.spotlightTerminalBadge == "Ghostty")
+        #expect(session.spotlightTerminalLabel == "Ghostty · worktree")
+    }
+
+    // MARK: - Completed activity falls back to summary (symptom D)
+
+    @Test
+    func completedActivityFallsBackToSummaryWhenNoAssistantMessage() {
+        let session = AgentSession(
+            id: "session-1",
+            title: "Claude · worktree",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Fix the failing test",
+            updatedAt: .now,
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "worktree",
+                paneTitle: "Claude worktree",
+                workingDirectory: "/tmp/worktree"
+            ),
+            claudeMetadata: ClaudeSessionMetadata(
+                lastUserPrompt: "Fix the failing test"
+            )
+        )
+
+        // Previously collapsed to a bare "Ready" even though there is history.
+        #expect(session.spotlightActivityLineText == "Fix the failing test")
+    }
+
+    @Test
+    func completedActivityKeepsReadyForPlaceholderSummary() {
+        let session = AgentSession(
+            id: "session-1",
+            title: "Claude · worktree",
+            tool: .claudeCode,
+            origin: .live,
+            attachmentState: .attached,
+            phase: .completed,
+            summary: "Recovered Claude session in worktree.",
+            updatedAt: .now,
+            jumpTarget: JumpTarget(
+                terminalApp: "Ghostty",
+                workspaceName: "worktree",
+                paneTitle: "Claude worktree",
+                workingDirectory: "/tmp/worktree"
+            ),
+            claudeMetadata: ClaudeSessionMetadata(
+                lastUserPrompt: "Anything"
+            )
+        )
+
+        // Synthetic/recovery placeholders are not real activity → stay neutral.
+        #expect(session.spotlightActivityLineText == "Ready")
+    }
 }
