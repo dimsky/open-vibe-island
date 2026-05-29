@@ -262,6 +262,32 @@ final class ProcessMonitoringCoordinator {
     /// alive, based on ``ActiveProcessSnapshot`` matching and per-tool
     /// heuristics (e.g. bundle-ID liveness for Cursor, PID matching for
     /// Codex/Claude/Gemini).
+    /// Ids of `candidates` (Claude transcript-recovered sessions) that correspond
+    /// to a currently-running Claude process, matched by session id or transcript
+    /// path. Used to keep only still-running sessions when recovering from
+    /// transcripts at launch: finished conversations have no live process and are
+    /// dropped (a dropped session that is still relevant self-heals via its next
+    /// hook event). A pure function so it is testable without a coordinator.
+    nonisolated static func liveClaudeCandidateIDs(
+        among candidates: [AgentSession],
+        matching processes: [ActiveProcessSnapshot]
+    ) -> Set<String> {
+        let claudeProcesses = processes.filter { $0.tool == .claudeCode }
+        let processSessionIDs = Set(claudeProcesses.compactMap(\.sessionID))
+        let processTranscriptPaths = Set(claudeProcesses.compactMap(\.transcriptPath))
+
+        var matched: Set<String> = []
+        for candidate in candidates where candidate.tool == .claudeCode {
+            if processSessionIDs.contains(candidate.id) {
+                matched.insert(candidate.id)
+            } else if let transcriptPath = candidate.claudeMetadata?.transcriptPath,
+                      processTranscriptPaths.contains(transcriptPath) {
+                matched.insert(candidate.id)
+            }
+        }
+        return matched
+    }
+
     func sessionIDsWithAliveProcesses(
         activeProcesses: [ActiveProcessSnapshot]
     ) -> Set<String> {

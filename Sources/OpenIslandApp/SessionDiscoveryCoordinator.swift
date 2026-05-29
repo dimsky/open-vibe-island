@@ -96,7 +96,19 @@ final class SessionDiscoveryCoordinator {
         let cursorRecords = allCursor.filter { $0.updatedAt >= cutoff && $0.shouldRestoreToLiveState }
 
         let discoveredCodex = codexRolloutDiscovery.discoverRecentSessions()
-        let discoveredClaude = claudeTranscriptDiscovery.discoverRecentSessions()
+
+        // Only surface transcript-recovered Claude sessions whose agent process
+        // is still running. Finished conversations have no live process; keeping
+        // them would show un-jumpable "Unknown" rows and persist them to the
+        // registry. A session that is still relevant but unmatched here
+        // self-heals via its next hook event.
+        let discoveredClaudeCandidates = claudeTranscriptDiscovery.discoverRecentSessions()
+        let liveProcesses = ActiveAgentProcessDiscovery().discover()
+        let liveClaudeIDs = ProcessMonitoringCoordinator.liveClaudeCandidateIDs(
+            among: discoveredClaudeCandidates,
+            matching: liveProcesses
+        )
+        let discoveredClaude = discoveredClaudeCandidates.filter { liveClaudeIDs.contains($0.id) }
 
         return StartupDiscoveryPayload(
             codexRecords: codexRecords,
