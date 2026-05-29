@@ -10,150 +10,124 @@ import T from './T.astro';
     </h2>
     <p class="section-sub">
       <T
-        en="No window switching. Sessions, approvals, questions, and a one-click jump back to the right terminal — right where your eyes already are."
-        zh="无需切换窗口。会话、审批、提问，以及一键跳回正确的终端——就在你视线本来所在的地方。"
+        en="Sessions, approvals, questions, results, and a one-click jump back — right where your eyes already are."
+        zh="会话、审批、提问、结果，再加一键跳回——就在你视线本来所在的地方。"
       />
     </p>
   </div>
 
   <div class="mockup" id="mockup">
     <div class="screen" id="demo-screen">
-      <!-- fake macOS top bar + physical notch -->
       <div class="menubar">
         <span class="mb-left"></span>
-        <span class="mb-right">
-          <span class="mb-dot"></span><span class="mb-dot"></span><span class="mb-dot"></span>
-        </span>
+        <span class="mb-right"><span class="mb-dot"></span><span class="mb-dot"></span><span class="mb-dot"></span></span>
       </div>
 
-      <!-- self-driving fake cursor -->
       <div class="cursor" id="cursor" aria-hidden="true">
         <svg viewBox="0 0 24 24" width="22" height="22">
-          <path
-            d="M5 2l14 8.5-6.2 1.3 3.4 6.6-2.6 1.3-3.4-6.6L5 18.5z"
-            fill="#fff"
-            stroke="#0b0b0d"
-            stroke-width="1.2"
-            stroke-linejoin="round"></path>
+          <path d="M5 2l14 8.5-6.2 1.3 3.4 6.6-2.6 1.3-3.4-6.6L5 18.5z" fill="#fff" stroke="#0b0b0d" stroke-width="1.2" stroke-linejoin="round"></path>
         </svg>
       </div>
 
-      <!-- the morphing island -->
       <div class="island" id="island">
-        <!-- compact / idle -->
+        <!-- compact: activity on the left, count on the right -->
         <div class="layer active" data-layer="compact">
-          <div class="compact-row">
-            <canvas class="mascot" id="m-compact" width="12" height="9"></canvas>
-            <span class="compact-count"><span class="dotpulse"></span>3</span>
-          </div>
+          <span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="cnt">×<span id="cnt-n">11</span></span>
         </div>
 
-        <!-- sessions list -->
-        <div class="layer" data-layer="sessions">
-          <div class="panel-head">
-            <span class="ph-title"><T en="Sessions" zh="会话" /></span>
-            <span class="ph-meta">3 <T en="active" zh="活跃" /></span>
-          </div>
-          <ul class="sess-list">
-            <li>
-              <span class="sdot blue"></span>
-              <span class="sname">Claude Code</span>
-              <span class="srepo">open-island</span>
-              <span class="sstate blue"><T en="running" zh="运行中" /></span>
-            </li>
-            <li>
-              <span class="sdot orange"></span>
-              <span class="sname">Codex</span>
-              <span class="srepo">api-server</span>
-              <span class="sstate orange"><T en="waiting" zh="待响应" /></span>
-            </li>
-            <li>
-              <span class="sdot green"></span>
-              <span class="sname">Gemini CLI</span>
-              <span class="srepo">web</span>
-              <span class="sstate green"><T en="done" zh="完成" /></span>
-            </li>
-          </ul>
-        </div>
-
-        <!-- permission approval -->
-        <div class="layer" data-layer="approval">
-          <div class="panel-head">
-            <canvas class="mascot sm" id="m-appr" width="12" height="9"></canvas>
-            <span class="ph-title">Claude Code</span>
-            <span class="badge-mini orange"><T en="permission" zh="权限请求" /></span>
-          </div>
-          <p class="appr-q">
-            <T en="Run this command?" zh="运行此命令？" />
-          </p>
-          <div class="appr-cmd"><span class="prompt">$</span> rm -rf build/</div>
-          <div class="appr-actions">
-            <button class="ibtn deny" type="button"><T en="Deny" zh="拒绝" /></button>
-            <button class="ibtn allow" type="button" id="btn-approve">
-              <T en="Allow" zh="允许" />
-            </button>
-          </div>
-        </div>
-
-        <!-- approved confirmation -->
-        <div class="layer" data-layer="approved">
-          <div class="confirm green">
-            <span class="check">✓</span><T en="Allowed" zh="已允许" />
-          </div>
-        </div>
-
-        <!-- question -->
-        <div class="layer" data-layer="question">
-          <div class="panel-head">
-            <canvas class="mascot sm" id="m-ask" width="12" height="9"></canvas>
-            <span class="ph-title">Codex</span>
-            <span class="badge-mini blue"><T en="question" zh="提问" /></span>
-          </div>
-          <p class="appr-q">
-            <T en="Which package manager?" zh="用哪个包管理器？" />
-          </p>
-          <div class="opts">
-            <button class="opt" type="button" id="q-opt-0">pnpm</button>
-            <button class="opt" type="button">npm</button>
-            <button class="opt" type="button">bun</button>
-          </div>
-        </div>
-
-        <!-- answered confirmation -->
-        <div class="layer" data-layer="answered">
-          <div class="confirm blue">
-            <span class="check">✓</span><T en="Answered" zh="已回答" />
-          </div>
-        </div>
-
-        <!-- precision jump-back (the differentiator) -->
-        <div class="layer" data-layer="jump">
-          <div class="panel-head">
-            <span class="ph-title"><T en="Jump back" zh="跳回" /></span>
-          </div>
-          <div class="jump-target">
-            <span class="term-glyph">›_</span>
-            <span class="jt-text">
-              <span class="jt-app">iTerm2</span>
-              <span class="jt-pane">tmux · win 2 · pane 1</span>
+        <!-- expanded panel -->
+        <div class="layer" data-layer="panel">
+          <div class="p-head">
+            <span class="ph-agent">Claude</span>
+            <span class="ph-usage">5h</span>
+            <span class="ph-pct">7%</span>
+            <span class="p-icons">
+              <span class="picon" title="sound"><svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8a5 5 0 0 1 0 8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></span>
+              <span class="picon" title="settings"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></span>
+              <span class="picon" title="quit"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 3v9"/><path d="M6.5 7a7 7 0 1 0 11 0"/></svg></span>
             </span>
-            <span class="jt-arrow">→</span>
+          </div>
+
+          <div class="legend">
+            <span class="lg-label"><T en="Sessions" zh="会话" /></span>
+            <span class="lg-total"><b>11</b> <T en="total" zh="总计" /></span>
+            <span class="lg-stat blue"><i></i>2 <T en="running" zh="运行" /></span>
+            <span class="lg-stat green"><i></i>1 <T en="done" zh="完成" /></span>
+            <span class="lg-stat idle"><i></i>8 <T en="idle" zh="空闲" /></span>
+          </div>
+
+          <div class="p-body">
+            <!-- card A: permission -> result -->
+            <article class="scard" id="card-a">
+              <div class="sc-row">
+                <span class="sc-ico"><span class="spin"></span><span class="check">✓</span></span>
+                <span class="sc-title"><b>xsldify</b> <span class="sc-prompt"><span lang="en">You: hit an error in the iteration node…</span><span lang="zh">You: 迭代节点中发现会出现 error…</span></span></span>
+                <span class="sc-badges"><span class="bdg claude">claude</span><span class="bdg term">cmux</span></span>
+                <span class="sc-time">&lt;1m</span>
+                <span class="sc-chev">⌃</span>
+              </div>
+              <div class="sc-detail">
+                <!-- permission mode -->
+                <div class="d-perm">
+                  <div class="cmd"><span class="prompt">$</span> <span id="cmd-text"></span><span class="tcaret">▋</span></div>
+                  <div class="d-actions">
+                    <button class="ibtn deny" type="button"><T en="Deny" zh="拒绝" /></button>
+                    <button class="ibtn allow" type="button" id="btn-approve"><T en="Allow" zh="允许" /></button>
+                  </div>
+                </div>
+                <!-- result mode -->
+                <div class="d-result">
+                  <p class="res-title"><T en="Reproduced — the root cause is clear:" zh="实证复现完成，根因非常明确：" /></p>
+                  <div class="res-table">
+                    <div class="rt-head"><span><T en="Test" zh="测试" /></span><span><T en="Result" zh="结果" /></span></div>
+                    <div class="rt-row"><span>T1 <code>print(1+1)</code></span><span class="ok">✅ <T en="OK" zh="成功" /></span></div>
+                    <div class="rt-row"><span>T2 <code>urlopen()</code></span><span class="ok">✅ HTTP 200</span></div>
+                    <div class="rt-row"><span>T3 <code>threading</code></span><span class="bad">❌ not permitted</span></div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <!-- card B: question -> answered -->
+            <article class="scard" id="card-b">
+              <div class="sc-row">
+                <span class="sc-ico"><span class="spin"></span><span class="check">✓</span></span>
+                <span class="sc-title"><b>open-island</b> <span class="sc-prompt"><span lang="en">You: which package manager?</span><span lang="zh">You: 用哪个包管理器？</span></span></span>
+                <span class="sc-badges"><span class="bdg claude">codex</span><span class="bdg term">ghostty</span></span>
+                <span class="sc-time">3m</span>
+                <span class="sc-chev">⌃</span>
+              </div>
+              <div class="sc-detail">
+                <div class="d-question">
+                  <p class="q-title"><T en="Which package manager?" zh="用哪个包管理器？" /></p>
+                  <div class="opts">
+                    <button class="opt" type="button" id="q-opt-0">pnpm</button>
+                    <button class="opt" type="button">npm</button>
+                    <button class="opt" type="button">bun</button>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="p-foot">
+            <T en="Show all 11 sessions" zh="显示全部 11 个会话" />
           </div>
         </div>
 
-        <!-- done -->
-        <div class="layer" data-layer="done">
-          <div class="confirm green">
-            <canvas class="mascot sm" id="m-done" width="12" height="9"></canvas>
-            <T en="Back in flow" zh="回到心流" />
-          </div>
+        <!-- auto-popup completion toast -->
+        <div class="layer" data-layer="toast">
+          <span class="toast-ico">✓</span>
+          <span class="toast-text"><b>xsldify</b> <span><T en="tests finished" zh="测试完成" /></span></span>
+          <span class="toast-badge">claude</span>
         </div>
       </div>
     </div>
 
     <p class="demo-label pixel">
       <span class="dl-prefix">▸</span>
-      <span id="demo-label"><span lang="en" id="dl-en">idle</span><span lang="zh" id="dl-zh">空闲</span></span>
+      <span><span lang="en" id="dl-en">idle</span><span lang="zh" id="dl-zh">空闲</span></span>
     </p>
   </div>
 </section>
@@ -166,15 +140,9 @@ import T from './T.astro';
     align-items: center;
     margin-bottom: 40px;
   }
-  .demo-head .section-sub {
-    margin: 0 auto;
-  }
+  .demo-head .section-sub { margin: 0 auto; }
 
-  .mockup {
-    width: 100%;
-    max-width: 760px;
-    margin: 0 auto;
-  }
+  .mockup { width: 100%; max-width: 760px; margin: 0 auto; }
 
   .screen {
     position: relative;
@@ -191,386 +159,224 @@ import T from './T.astro';
   }
 
   .menubar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 26px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 14px;
-    background: rgba(255, 255, 255, 0.03);
+    position: absolute; top: 0; left: 0; right: 0; height: 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 14px; background: rgba(255, 255, 255, 0.03);
     border-bottom: 1px solid var(--border);
   }
-  .mb-right {
-    display: inline-flex;
-    gap: 7px;
-  }
-  .mb-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--text-3);
-  }
+  .mb-right { display: inline-flex; gap: 7px; }
+  .mb-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); }
 
-  /* the morphing island, anchored to the top-center notch */
+  /* morphing island */
   .island {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 200px;
-    height: 30px;
+    position: absolute; top: 0; left: 50%;
+    transform: translateX(-50%) scale(var(--s, 1));
+    transform-origin: top center;
+    width: 236px; height: 36px;
     background: #050506;
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-top: none;
     border-radius: 0 0 18px 18px;
-    overflow: hidden;
-    z-index: 5;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
-    transition:
-      width 0.5s cubic-bezier(0.5, 1.3, 0.4, 1),
-      height 0.5s cubic-bezier(0.5, 1.3, 0.4, 1),
-      border-radius 0.4s ease;
+    overflow: hidden; z-index: 5;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.6);
+    transition: width 0.5s cubic-bezier(0.5, 1.25, 0.45, 1),
+      height 0.5s cubic-bezier(0.5, 1.25, 0.45, 1), border-radius 0.4s ease;
   }
 
-  .layer {
-    display: none;
-    position: absolute;
-    inset: 0;
-    padding: 14px 16px;
-  }
-  .layer.active {
-    display: block;
-    animation: layerIn 0.32s ease both;
-    animation-delay: 0.12s;
-  }
-  @keyframes layerIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
+  .layer { display: none; position: absolute; inset: 0; }
+  .layer.active { display: block; }
 
   /* compact */
   [data-layer='compact'] {
-    padding: 0;
+    display: none;
+    align-items: center; justify-content: space-between;
+    padding: 0 16px;
   }
-  .compact-row {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
+  [data-layer='compact'].active { display: flex; }
+  .eq { display: inline-flex; align-items: flex-end; gap: 3px; height: 14px; }
+  .eq i {
+    width: 3px; background: var(--blue); border-radius: 1px;
+    box-shadow: 0 0 6px var(--blue); animation: eq 0.9s ease-in-out infinite;
   }
-  .compact-count {
-    font-family: var(--pixel);
-    font-size: 10px;
-    color: var(--text);
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+  .eq i:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .eq i:nth-child(2) { height: 13px; animation-delay: 0.15s; }
+  .eq i:nth-child(3) { height: 9px; animation-delay: 0.3s; }
+  @keyframes eq { 0%, 100% { transform: scaleY(0.45); } 50% { transform: scaleY(1); } }
+  .cnt { font-family: var(--pixel); font-size: 11px; color: var(--text); }
+
+  /* panel head */
+  .p-head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 11px 14px 9px;
   }
-  .dotpulse {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--blue);
-    box-shadow: 0 0 8px var(--blue);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    50% {
-      opacity: 0.35;
-    }
+  .ph-agent { font-family: var(--pixel); font-size: 11px; color: var(--text); }
+  .ph-usage { font-family: var(--mono); font-size: 11px; color: var(--text-3); }
+  .ph-pct { font-family: var(--mono); font-size: 11px; color: var(--green); font-weight: 700; }
+  .p-icons { margin-left: auto; display: inline-flex; gap: 7px; }
+  .picon {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: rgba(255, 255, 255, 0.06); color: var(--text-2);
   }
 
-  .mascot {
-    width: 26px;
-    height: 19.5px;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
+  /* legend */
+  .legend {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 0 15px 11px; font-family: var(--mono); font-size: 11px;
+    color: var(--text-3); border-bottom: 1px solid var(--border);
   }
-  .mascot.sm {
-    width: 20px;
-    height: 15px;
-  }
+  .lg-label { font-family: var(--pixel); font-size: 9px; color: var(--text-2); }
+  .lg-total b { color: var(--text); }
+  .lg-stat { display: inline-flex; align-items: center; gap: 5px; }
+  .lg-stat i { width: 6px; height: 6px; border-radius: 50%; }
+  .lg-stat.blue { color: var(--blue); } .lg-stat.blue i { background: var(--blue); }
+  .lg-stat.green { color: var(--green); } .lg-stat.green i { background: var(--green); }
+  .lg-stat.idle i { background: var(--text-3); }
 
-  /* panel header shared */
-  .panel-head {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    margin-bottom: 12px;
-  }
-  .ph-title {
-    font-family: var(--pixel);
-    font-size: 11px;
-    color: var(--text);
-  }
-  .ph-meta {
-    margin-left: auto;
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-3);
-  }
-  .badge-mini {
-    margin-left: auto;
-    font-family: var(--pixel);
-    font-size: 8px;
-    padding: 4px 7px;
-    border-radius: 6px;
-    text-transform: uppercase;
-  }
-  .badge-mini.orange {
-    color: var(--orange);
-    background: rgba(255, 155, 40, 0.14);
-  }
-  .badge-mini.blue {
-    color: var(--blue);
-    background: rgba(87, 151, 255, 0.14);
-  }
+  /* body */
+  .p-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 9px; }
 
-  /* sessions */
-  .sess-list {
-    list-style: none;
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-  }
-  .sess-list li {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text-2);
-    background: rgba(255, 255, 255, 0.025);
+  .scard {
+    background: rgba(255, 255, 255, 0.022);
     border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 8px 10px;
+    border-radius: 11px;
+    overflow: hidden;
+    transition: border-color 0.25s ease;
+    opacity: 0;
+    transform: translateY(8px);
   }
-  .sdot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex: none;
-  }
-  .sname {
-    color: var(--text);
-  }
-  .srepo {
-    color: var(--text-3);
-  }
-  .sstate {
-    margin-left: auto;
-    font-size: 11px;
-  }
-  .sdot.blue,
-  .sstate.blue {
-    color: var(--blue);
-  }
-  .sdot.blue {
-    background: var(--blue);
-    box-shadow: 0 0 8px var(--blue);
-  }
-  .sdot.orange,
-  .sstate.orange {
-    color: var(--orange);
-  }
-  .sdot.orange {
-    background: var(--orange);
-    box-shadow: 0 0 8px var(--orange);
-  }
-  .sdot.green,
-  .sstate.green {
-    color: var(--green);
-  }
-  .sdot.green {
-    background: var(--green);
-  }
+  [data-layer='panel'].active .scard { animation: rowIn 0.42s ease forwards; }
+  [data-layer='panel'].active .scard:nth-of-type(1) { animation-delay: 0.12s; }
+  [data-layer='panel'].active .scard:nth-of-type(2) { animation-delay: 0.22s; }
+  @keyframes rowIn { to { opacity: 1; transform: none; } }
+  .scard.expanded { border-color: var(--border-2); background: rgba(255, 255, 255, 0.04); }
 
-  /* approval + question */
-  .appr-q {
-    font-family: var(--mono);
-    font-size: 13px;
-    color: var(--text);
-    margin-bottom: 10px;
+  .sc-row { display: flex; align-items: center; gap: 9px; padding: 10px 12px; }
+  .sc-ico { width: 14px; height: 14px; flex: none; position: relative; }
+  .spin {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 2px solid rgba(87, 151, 255, 0.25); border-top-color: var(--blue);
+    animation: spin 0.8s linear infinite;
   }
-  .appr-cmd {
-    font-family: var(--mono);
-    font-size: 12px;
-    color: var(--text);
-    background: var(--bg);
-    border: 1px solid var(--border-2);
-    border-radius: 8px;
-    padding: 9px 11px;
-    margin-bottom: 14px;
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .check { display: none; color: var(--green); font-size: 14px; line-height: 1; }
+  .scard.done .spin { display: none; }
+  .scard.done .check { display: inline; }
+
+  .sc-title { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1; }
+  .sc-title b { font-family: var(--pixel); font-size: 10px; color: var(--text); flex: none; }
+  .sc-prompt {
+    font-family: var(--mono); font-size: 12px; color: var(--text-3);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .appr-cmd .prompt {
-    color: var(--orange);
+  .sc-badges { display: inline-flex; gap: 6px; flex: none; }
+  .bdg {
+    font-family: var(--mono); font-size: 10px; padding: 3px 8px;
+    border-radius: 999px; border: 1px solid var(--border-2);
   }
-  .appr-actions {
-    display: flex;
-    gap: 10px;
+  .bdg.claude { color: var(--orange); border-color: rgba(255, 155, 40, 0.4); }
+  .bdg.term { color: var(--text-3); }
+  .sc-time { font-family: var(--mono); font-size: 11px; color: var(--text-3); flex: none; }
+  .sc-chev { color: var(--text-3); font-size: 12px; flex: none; transition: transform 0.25s ease; }
+  .scard.expanded .sc-chev { transform: rotate(180deg); color: var(--accent); }
+
+  /* card detail */
+  .sc-detail {
+    max-height: 0; opacity: 0; overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    padding: 0 12px;
   }
+  .scard.expanded .sc-detail { max-height: 260px; opacity: 1; padding-bottom: 12px; }
+
+  .d-perm, .d-result, .d-question { display: none; }
+  .scard.mode-perm .d-perm { display: block; }
+  .scard.mode-result .d-result { display: block; }
+  .scard.mode-question .d-question { display: block; }
+
+  .cmd {
+    font-family: var(--mono); font-size: 12px; color: var(--text);
+    background: var(--bg); border: 1px solid var(--border-2);
+    border-radius: 8px; padding: 9px 11px; margin-bottom: 11px;
+    word-break: break-all;
+  }
+  .cmd .prompt { color: var(--orange); }
+  .tcaret { color: var(--accent); animation: blink 1s step-end infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .d-actions { display: flex; gap: 10px; }
   .ibtn {
-    flex: 1;
-    font-family: var(--pixel);
-    font-size: 10px;
-    padding: 11px;
-    border-radius: 9px;
-    border: 1px solid var(--border-2);
-    background: transparent;
-    color: var(--text-2);
-    transition: filter 0.2s ease, transform 0.2s ease, background 0.2s ease;
+    flex: 1; font-family: var(--pixel); font-size: 10px; padding: 10px;
+    border-radius: 9px; border: 1px solid var(--border-2);
+    background: transparent; color: var(--text-2);
+    transition: filter 0.2s, transform 0.2s;
   }
-  .ibtn.allow {
-    background: var(--green);
-    color: #06210f;
-    border-color: transparent;
-  }
-  .ibtn.deny:hover {
-    border-color: var(--red);
-    color: var(--red);
-  }
+  .ibtn.allow { background: var(--green); color: #06210f; border-color: transparent; }
 
-  .opts {
-    display: flex;
-    gap: 8px;
+  .res-title { font-family: var(--mono); font-size: 12px; color: var(--text); margin-bottom: 9px; }
+  .res-table { border: 1px solid var(--border-2); border-radius: 9px; overflow: hidden; }
+  .rt-head, .rt-row {
+    display: grid; grid-template-columns: 1.1fr 1fr; gap: 8px;
+    padding: 7px 11px; font-family: var(--mono); font-size: 11.5px;
   }
+  .rt-head { background: rgba(255, 255, 255, 0.04); color: var(--text-2); font-weight: 700; }
+  .rt-row { border-top: 1px solid var(--border); color: var(--text-2); }
+  .rt-row code { color: var(--text); }
+  .rt-row .ok { color: var(--green); }
+  .rt-row .bad { color: var(--red); }
+
+  .q-title { font-family: var(--mono); font-size: 13px; color: var(--text); margin-bottom: 10px; }
+  .opts { display: flex; gap: 8px; }
   .opt {
-    flex: 1;
-    font-family: var(--mono);
-    font-size: 12px;
-    padding: 10px;
-    border-radius: 9px;
-    border: 1px solid var(--border-2);
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text);
-    transition: filter 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    flex: 1; font-family: var(--mono); font-size: 12px; padding: 10px;
+    border-radius: 9px; border: 1px solid var(--border-2);
+    background: rgba(255, 255, 255, 0.02); color: var(--text);
+    transition: filter 0.2s, transform 0.2s, border-color 0.2s, background 0.2s;
   }
-  #q-opt-0 {
-    border-color: rgba(87, 151, 255, 0.5);
+  .opt.picked { border-color: var(--green); background: rgba(42, 232, 107, 0.12); color: var(--green); }
+
+  .p-foot {
+    text-align: center; font-family: var(--mono); font-size: 11px;
+    color: var(--text-3); padding: 9px; border-top: 1px solid var(--border);
   }
 
-  /* confirmations */
-  .confirm {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 9px;
-    font-family: var(--pixel);
-    font-size: 11px;
+  /* toast */
+  [data-layer='toast'] {
+    display: none; align-items: center; gap: 10px; padding: 0 16px;
   }
-  .confirm.green {
-    color: var(--green);
+  [data-layer='toast'].active { display: flex; }
+  .toast-ico {
+    width: 20px; height: 20px; border-radius: 50%; flex: none;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: var(--green); color: #06210f; font-size: 12px; font-weight: 700;
   }
-  .confirm.blue {
-    color: var(--blue);
-  }
-  .confirm .check {
-    font-size: 13px;
+  .toast-text { display: flex; align-items: baseline; gap: 7px; font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+  .toast-text b { font-family: var(--pixel); font-size: 10px; color: var(--text); }
+  .toast-badge {
+    margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--orange);
+    border: 1px solid rgba(255, 155, 40, 0.4); border-radius: 999px; padding: 3px 8px;
   }
 
-  /* jump */
-  .jump-target {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid var(--border-2);
-    border-radius: 10px;
-    padding: 12px 14px;
-  }
-  .term-glyph {
-    font-family: var(--mono);
-    font-weight: 700;
-    color: var(--green);
-    background: var(--bg);
-    border-radius: 7px;
-    padding: 8px 10px;
-    border: 1px solid var(--border);
-  }
-  .jt-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.4;
-  }
-  .jt-app {
-    font-family: var(--pixel);
-    font-size: 10px;
-    color: var(--text);
-  }
-  .jt-pane {
-    font-family: var(--mono);
-    font-size: 11px;
-    color: var(--text-3);
-  }
-  .jt-arrow {
-    margin-left: auto;
-    color: var(--accent);
-    font-size: 18px;
-    animation: nudge 1s ease-in-out infinite;
-  }
-  @keyframes nudge {
-    50% {
-      transform: translateX(4px);
-    }
-  }
-
-  /* fake cursor */
+  /* cursor */
   .cursor {
-    position: absolute;
-    left: 50%;
-    top: 60%;
-    z-index: 20;
-    pointer-events: none;
+    position: absolute; left: 50%; top: 60%; z-index: 20; pointer-events: none; opacity: 0;
     filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
-    transition:
-      left 0.7s cubic-bezier(0.4, 0, 0.2, 1),
-      top 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: left 0.7s cubic-bezier(0.4, 0, 0.2, 1),
+      top 0.7s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
     will-change: left, top;
   }
-  .cursor.clicking {
-    transform: scale(0.82);
-  }
+  .cursor.clicking { transform: scale(0.82); }
 
-  .demo-label {
-    text-align: center;
-    margin-top: 22px;
-    font-size: 11px;
-    color: var(--text-3);
-  }
-  .dl-prefix {
-    color: var(--accent);
-    margin-right: 8px;
-  }
+  .demo-label { text-align: center; margin-top: 22px; font-size: 11px; color: var(--text-3); }
+  .dl-prefix { color: var(--accent); margin-right: 8px; }
 
   @media (max-width: 768px) {
-    .ph-title,
-    .appr-q {
-      font-size: 11px;
-    }
-    .sess-list li {
-      font-size: 11px;
-    }
-    .srepo {
-      display: none;
-    }
+    .sc-prompt { font-size: 11px; }
+    .legend { font-size: 10px; gap: 9px; }
   }
 
-  /* Reduced motion: park on the sessions panel, hide the roving cursor. */
   @media (prefers-reduced-motion: reduce) {
-    .cursor,
-    .dotpulse,
-    .jt-arrow {
-      animation: none;
-    }
+    .cursor, .eq i, .spin, .tcaret { animation: none; }
+    .scard { opacity: 1; transform: none; }
   }
 </style>
 
@@ -582,87 +388,76 @@ import T from './T.astro';
     var mockup = document.getElementById('mockup');
     var dlEn = document.getElementById('dl-en');
     var dlZh = document.getElementById('dl-zh');
+    var cntN = document.getElementById('cnt-n');
     if (!screen || !island || !mockup) return;
 
-    /* ---- Scout mascot: a tiny pixel sprite, body tinted by state ----
-       B = body (state color), F = cream face features, '.' = transparent */
-    var SPRITE = [
-      '...BBBBBB...',
-      '.BBBBBBBBBB.',
-      'BBBBBBBBBBBB',
-      'BBBBBBBBBBBB',
-      'BBFFFFFBBFFB',
-      'BBBBBBBBBBBB',
-      'BBBBBBBBBBBB',
-      '.BBBBBBBBBB.',
-      '...BBBBBB...',
-    ];
-    var CREAM = '#f2ebdd';
-    function drawMascot(id, body) {
-      var c = document.getElementById(id);
-      if (!c) return;
-      var ctx = c.getContext('2d');
-      ctx.clearRect(0, 0, c.width, c.height);
-      for (var y = 0; y < SPRITE.length; y++) {
-        for (var x = 0; x < SPRITE[y].length; x++) {
-          var ch = SPRITE[y][x];
-          if (ch === '.') continue;
-          ctx.fillStyle = ch === 'F' ? CREAM : body;
-          ctx.fillRect(x, y, 1, 1);
-        }
-      }
-    }
-    var BLUE = '#5797ff',
-      GREEN = '#2ae86b',
-      ORANGE = '#ff9b28';
-    function paintMascots() {
-      drawMascot('m-compact', BLUE);
-      drawMascot('m-appr', ORANGE);
-      drawMascot('m-ask', BLUE);
-      drawMascot('m-done', GREEN);
-    }
-    paintMascots();
+    var cardA = document.getElementById('card-a');
+    var cardB = document.getElementById('card-b');
+    var cmdText = document.getElementById('cmd-text');
+    var CMD = 'kubectl exec -n qa-ai dify-sandbox -- python t.py';
 
-    /* ---- island geometry per state ---- */
+    /* responsive scale so the fixed-size island fits narrow screens */
+    function fit() {
+      var s = Math.min(1, (screen.clientWidth - 24) / 560);
+      island.style.setProperty('--s', s.toFixed(3));
+    }
+    fit();
+    window.addEventListener('resize', fit, { passive: true });
+
     var SIZES = {
-      compact: { w: 200, h: 30, r: '0 0 18px 18px' },
-      sessions: { w: 440, h: 196, r: '0 0 22px 22px' },
-      approval: { w: 430, h: 214, r: '0 0 22px 22px' },
-      approved: { w: 188, h: 46, r: '0 0 16px 16px' },
-      question: { w: 430, h: 188, r: '0 0 22px 22px' },
-      answered: { w: 188, h: 46, r: '0 0 16px 16px' },
-      jump: { w: 410, h: 124, r: '0 0 22px 22px' },
-      done: { w: 220, h: 50, r: '0 0 16px 16px' },
+      compact: { w: 236, h: 36, r: '0 0 18px 18px' },
+      panel: { w: 540, h: 392, r: '0 0 24px 24px' },
+      toast: { w: 340, h: 56, r: '0 0 18px 18px' },
     };
-    var LABELS = {
-      compact: { en: 'idle', zh: '空闲' },
-      sessions: { en: 'sessions', zh: '会话列表' },
-      approval: { en: 'permission request', zh: '权限请求' },
-      approved: { en: 'allowed', zh: '已允许' },
-      question: { en: 'question', zh: '提问' },
-      answered: { en: 'answered', zh: '已回答' },
-      jump: { en: 'jump back', zh: '精准跳回' },
-      done: { en: 'done', zh: '完成' },
-    };
-
-    function setState(name) {
-      var layers = island.querySelectorAll('.layer');
-      for (var i = 0; i < layers.length; i++) layers[i].classList.remove('active');
-      var target = island.querySelector('[data-layer="' + name + '"]');
-      if (target) target.classList.add('active');
+    function showLayer(name, h) {
+      var ls = island.querySelectorAll('.layer');
+      for (var i = 0; i < ls.length; i++) ls[i].classList.remove('active');
+      var t = island.querySelector('[data-layer="' + name + '"]');
+      if (t) t.classList.add('active');
       var s = SIZES[name];
       island.style.width = s.w + 'px';
-      island.style.height = s.h + 'px';
+      island.style.height = (h || s.h) + 'px';
       island.style.borderRadius = s.r;
-      if (LABELS[name]) {
-        if (dlEn) dlEn.textContent = LABELS[name].en;
-        if (dlZh) dlZh.textContent = LABELS[name].zh;
-      }
+    }
+    function label(en, zh) {
+      if (dlEn) dlEn.textContent = en;
+      if (dlZh) dlZh.textContent = zh;
     }
 
-    /* ---- fake cursor ---- */
+    function resetCards() {
+      [cardA, cardB].forEach(function (c) {
+        if (!c) return;
+        c.classList.remove('expanded', 'done', 'mode-perm', 'mode-result', 'mode-question');
+      });
+      if (cmdText) cmdText.textContent = '';
+      var picked = island.querySelector('.opt.picked');
+      if (picked) picked.classList.remove('picked');
+    }
+    function expand(card, mode) {
+      [cardA, cardB].forEach(function (c) {
+        if (c && c !== card) c.classList.remove('expanded');
+      });
+      card.classList.remove('mode-perm', 'mode-result', 'mode-question');
+      card.classList.add('expanded', 'mode-' + mode);
+    }
+
+    /* typing animation */
+    var typeTimer = null;
+    function typeCmd(text, done) {
+      clearTimeout(typeTimer);
+      if (!cmdText) return done && done();
+      cmdText.textContent = '';
+      var i = 0;
+      (function tick() {
+        cmdText.textContent = text.slice(0, i);
+        if (i++ < text.length) typeTimer = setTimeout(tick, 26);
+        else if (done) done();
+      })();
+    }
+
+    /* cursor */
     function moveTo(x, y, ms) {
-      cursor.style.transitionDuration = (ms || 700) + 'ms, ' + (ms || 700) + 'ms';
+      cursor.style.transitionDuration = (ms || 700) + 'ms,' + (ms || 700) + 'ms,300ms';
       cursor.style.left = x + 'px';
       cursor.style.top = y + 'px';
     }
@@ -675,132 +470,69 @@ import T from './T.astro';
     }
     function clickPulse() {
       cursor.classList.add('clicking');
-      setTimeout(function () {
-        cursor.classList.remove('clicking');
-      }, 260);
+      setTimeout(function () { cursor.classList.remove('clicking'); }, 260);
     }
     function pressBtn(id) {
       var el = document.getElementById(id);
       if (!el) return;
       el.style.transform = 'scale(0.94)';
-      el.style.filter = 'brightness(1.25)';
-      setTimeout(function () {
-        el.style.transform = '';
-        el.style.filter = '';
-      }, 320);
+      el.style.filter = 'brightness(1.2)';
+      setTimeout(function () { el.style.transform = ''; el.style.filter = ''; }, 320);
     }
-    function showCursor(v) {
-      cursor.style.opacity = v ? '1' : '0';
-    }
+    function showCursor(v) { cursor.style.opacity = v ? '1' : '0'; }
 
-    /* ---- storyboard queue ---- */
+    /* ---- scenes (also exposed for static verification) ---- */
+    var SCENES = {
+      idle: function () { resetCards(); showLayer('compact'); showCursor(false); if (cntN) cntN.textContent = '11'; label('idle', '空闲'); },
+      list: function () { resetCards(); showLayer('panel', 252); label('sessions', '会话列表'); },
+      permission: function () { showLayer('panel', 360); expand(cardA, 'perm'); typeCmd(CMD); label('permission request', '权限请求'); },
+      result: function () { showLayer('panel', 432); cardA.classList.add('done'); expand(cardA, 'result'); label('completed', '已完成'); },
+      question: function () { showLayer('panel', 348); cardA.classList.remove('expanded'); expand(cardB, 'question'); label('question', '提问'); },
+      answered: function () { showLayer('panel', 348); var o = document.getElementById('q-opt-0'); if (o) o.classList.add('picked'); cardB.classList.add('done'); label('answered', '已回答'); },
+      toast: function () { showLayer('toast'); showCursor(false); label('completed · notification', '完成 · 通知'); },
+    };
+    window.__oiScene = function (n) { if (SCENES[n]) SCENES[n](); };
+
+    /* ---- storyboard ---- */
     var queue = [];
-    function step(fn, delay) {
-      queue.push({ fn: fn, delay: delay });
-    }
+    function step(fn, delay) { queue.push({ fn: fn, delay: delay }); }
     function build() {
-      step(function () {
-        setState('compact');
-        showCursor(false);
-        moveTo(screen.clientWidth * 0.5, screen.clientHeight * 0.62, 0);
-      }, 1500);
-      step(function () {
-        setState('sessions');
-      }, 2400);
-      step(function () {
-        setState('approval');
-        showCursor(true);
-      }, 1900);
-      step(function () {
-        moveToEl('btn-approve', 750);
-      }, 950);
-      step(function () {
-        clickPulse();
-        pressBtn('btn-approve');
-      }, 700);
-      step(function () {
-        setState('approved');
-        showCursor(false);
-      }, 1200);
-      step(function () {
-        setState('compact');
-      }, 1300);
-      step(function () {
-        setState('question');
-        showCursor(true);
-      }, 1900);
-      step(function () {
-        moveToEl('q-opt-0', 750);
-      }, 950);
-      step(function () {
-        clickPulse();
-        pressBtn('q-opt-0');
-      }, 700);
-      step(function () {
-        setState('answered');
-        showCursor(false);
-      }, 1200);
-      step(function () {
-        setState('compact');
-      }, 1300);
-      step(function () {
-        setState('jump');
-      }, 2000);
-      step(function () {
-        setState('done');
-      }, 1600);
-      step(function () {
-        setState('compact');
-      }, 1800);
+      step(SCENES.idle, 1700);
+      step(SCENES.list, 2500);
+      step(function () { SCENES.permission(); showCursor(true); }, 2000);
+      step(function () { moveToEl('btn-approve', 750); }, 1000);
+      step(function () { clickPulse(); pressBtn('btn-approve'); }, 800);
+      step(SCENES.result, 2800);
+      step(function () { SCENES.question(); }, 2100);
+      step(function () { moveToEl('q-opt-0', 700); }, 1000);
+      step(function () { clickPulse(); pressBtn('q-opt-0'); SCENES.answered(); }, 1400);
+      step(function () { showLayer('compact'); showCursor(false); label('idle', '空闲'); }, 1100);
+      step(function () { if (cntN) cntN.textContent = '12'; SCENES.toast(); }, 2100);
+      step(function () { resetCards(); showLayer('compact'); label('idle', '空闲'); }, 1700);
     }
 
-    /* ---- runner with viewport + visibility gating ---- */
-    var timer = null;
-    var onScreen = false;
-    var visible = true;
+    var timer = null, onScreen = false, visible = true;
     function tick() {
       if (!onScreen || !visible) return;
       if (queue.length === 0) build();
       var s = queue.shift();
-      if (s) {
-        s.fn();
-        timer = setTimeout(tick, s.delay);
-      }
+      if (s) { s.fn(); timer = setTimeout(tick, s.delay); }
     }
-    function play() {
-      if (!timer && onScreen && visible) timer = setTimeout(tick, 400);
-    }
-    function pause() {
-      clearTimeout(timer);
-      timer = null;
-    }
+    function play() { if (!timer && onScreen && visible) timer = setTimeout(tick, 400); }
+    function pause() { clearTimeout(timer); timer = null; }
 
-    var reduce =
-      window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) {
-      // Static: show the sessions panel, no roving cursor, no loop.
-      setState('sessions');
-      showCursor(false);
-      return;
-    }
+    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { SCENES.list(); showCursor(false); return; }
 
     if ('IntersectionObserver' in window) {
-      new IntersectionObserver(
-        function (entries) {
-          onScreen = entries[0].isIntersecting;
-          if (onScreen) play();
-          else pause();
-        },
-        { threshold: 0.1 }
-      ).observe(mockup);
-    } else {
-      onScreen = true;
-      play();
-    }
+      new IntersectionObserver(function (e) {
+        onScreen = e[0].isIntersecting;
+        if (onScreen) play(); else pause();
+      }, { threshold: 0.1 }).observe(mockup);
+    } else { onScreen = true; play(); }
     document.addEventListener('visibilitychange', function () {
       visible = !document.hidden;
-      if (visible) play();
-      else pause();
+      if (visible) play(); else pause();
     });
   })();
 </script>
